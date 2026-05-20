@@ -1,169 +1,30 @@
 {
 	"name": "pipeline1",
 	"properties": {
-		"activities": [
-			{
-				"name": "GetServerName",
-				"type": "WebActivity",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"method": "GET",
-					"url": "https://kvretailkart.vault.azure.net/secrets/sql-server-name?api-version=7.4",
-					"authentication": {
-						"type": "MSI",
-						"resource": "https://vault.azure.net"
-					}
-				}
-			},
-			{
-				"name": "set_ServerName",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "GetServerName",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "v_serverName",
-					"value": {
-						"value": "@activity('GetServerName').output.value",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "GetDatabaseName",
-				"type": "WebActivity",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"method": "GET",
-					"url": "https://kvretailkart.vault.azure.net/secrets/sql-database-name?api-version=7.4",
-					"authentication": {
-						"type": "MSI",
-						"resource": "https://vault.azure.net"
-					}
-				}
-			},
-			{
-				"name": "set_DatabaseName",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "GetDatabaseName",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "v_serverName",
-					"value": {
-						"value": "@activity('GetDatabaseName').output.value",
-						"type": "Expression"
-					}
-				}
-			},
-			{
-				"name": "GetUsername",
-				"type": "WebActivity",
-				"dependsOn": [],
-				"policy": {
-					"timeout": "0.12:00:00",
-					"retry": 0,
-					"retryIntervalInSeconds": 30,
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"method": "GET",
-					"url": "https://kvretailkart.vault.azure.net/secrets/sql-username?api-version=7.4",
-					"authentication": {
-						"type": "MSI",
-						"resource": "https://vault.azure.net"
-					}
-				}
-			},
-			{
-				"name": "set_Username",
-				"type": "SetVariable",
-				"dependsOn": [
-					{
-						"activity": "GetUsername",
-						"dependencyConditions": [
-							"Succeeded"
-						]
-					}
-				],
-				"policy": {
-					"secureOutput": false,
-					"secureInput": false
-				},
-				"userProperties": [],
-				"typeProperties": {
-					"variableName": "v_serverName",
-					"value": {
-						"value": "@activity('GetUsername').output.value",
-						"type": "Expression"
-					}
-				}
-			}
-		],
 		"parameters": {
-			"serverSecret": {
+			"sourceSchemaName": {
 				"type": "string",
-				"defaultValue": "sql-server-name"
+				"defaultValue": "dbo"
 			},
-			"databaseSecret": {
+			"sourceTableName": {
 				"type": "string",
-				"defaultValue": "sql-database-name"
+				"defaultValue": "retail_customers_source"
 			},
-			"usernameSecret": {
+			"watermarkColumn": {
 				"type": "string",
-				"defaultValue": "sql-username"
-			}
-		},
-		"variables": {
-			"v_serverName": {
-				"type": "String"
+				"defaultValue": "updated_at"
 			},
-			"v_databaseName": {
-				"type": "String"
+			"targetContainer": {
+				"type": "string",
+				"defaultValue": "raw"
 			},
-			"v_userName": {
-				"type": "String"
+			"targetFolderPath": {
+				"type": "string",
+				"defaultValue": "retail/customers/incremental/"
 			},
-			"v_password": {
-				"type": "String"
+			"targetFilename": {
+				"type": "string",
+				"defaultValue": "customers_incremental.parquet"
 			}
 		},
 		"annotations": []
