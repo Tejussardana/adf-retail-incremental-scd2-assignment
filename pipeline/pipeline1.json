@@ -1,0 +1,12 @@
+{
+	"name": "pipeline1",
+	"properties": {
+		"parameters": {
+			"ServerNameParam": {
+				"type": "string",
+				"defaultValue": "@keyvault.sql-server-name"
+			}
+		},
+		"annotations": []
+	}
+}
