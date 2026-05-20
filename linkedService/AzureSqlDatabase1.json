@@ -3,7 +3,8 @@
 	"properties": {
 		"parameters": {
 			"ServerNameParam": {
-				"type": "string"
+				"type": "string",
+				"defaultValue": "server-sql-name"
 			},
 			"DatabaseNameParam": {
 				"type": "string",
