@@ -448,6 +448,13 @@
 					"secureInput": false
 				},
 				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/updazvmnag_1777788717439@npupgradassessment.onmicrosoft.com/NB_SCD_Type2_Customer_Dimension",
+					"baseParameters": {
+						"raw_input_path": "abfss://raw@<storage-account>.dfs.core.windows.net/retail/customers/incremental/",
+						"curated_output_path": "abfss://curated@<storage-account>.dfs.core.windows.net/retail/dim_customers/"
+					}
+				},
 				"linkedServiceName": {
 					"referenceName": "DBS_RetailKart",
 					"type": "LinkedServiceReference"
