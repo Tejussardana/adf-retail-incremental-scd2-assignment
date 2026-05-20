@@ -1,5 +1,5 @@
 {
-	"name": "Credentials_Pipeline",
+	"name": "PL_SQL_to_ADLS",
 	"properties": {
 		"activities": [
 			{
