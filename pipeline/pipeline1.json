@@ -3,8 +3,8 @@
 	"properties": {
 		"activities": [
 			{
-				"name": "Lookup1",
-				"type": "Lookup",
+				"name": "GetServerName",
+				"type": "WebActivity",
 				"dependsOn": [],
 				"policy": {
 					"timeout": "0.12:00:00",
@@ -13,7 +13,129 @@
 					"secureOutput": false,
 					"secureInput": false
 				},
-				"userProperties": []
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://kvretailkart.vault.azure.net/secrets/sql-server-name?api-version=7.4",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "set_ServerName",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetServerName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_serverName",
+					"value": {
+						"value": "@activity('GetServerName').output.value",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "GetDatabaseName",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://kvretailkart.vault.azure.net/secrets/sql-database-name?api-version=7.4",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "set_DatabaseName",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetDatabaseName",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_serverName",
+					"value": {
+						"value": "@activity('GetDatabaseName').output.value",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "GetUsername",
+				"type": "WebActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"method": "GET",
+					"url": "https://kvretailkart.vault.azure.net/secrets/sql-username?api-version=7.4",
+					"authentication": {
+						"type": "MSI",
+						"resource": "https://vault.azure.net"
+					}
+				}
+			},
+			{
+				"name": "set_Username",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "GetUsername",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "v_serverName",
+					"value": {
+						"value": "@activity('GetUsername').output.value",
+						"type": "Expression"
+					}
+				}
 			}
 		],
 		"parameters": {
@@ -28,6 +150,20 @@
 			"usernameSecret": {
 				"type": "string",
 				"defaultValue": "sql-username"
+			}
+		},
+		"variables": {
+			"v_serverName": {
+				"type": "String"
+			},
+			"v_databaseName": {
+				"type": "String"
+			},
+			"v_userName": {
+				"type": "String"
+			},
+			"v_password": {
+				"type": "String"
 			}
 		},
 		"annotations": []
