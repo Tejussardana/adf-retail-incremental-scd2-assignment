@@ -175,7 +175,8 @@
 					"sink": {
 						"type": "ParquetSink",
 						"storeSettings": {
-							"type": "AzureBlobFSWriteSettings"
+							"type": "AzureBlobFSWriteSettings",
+							"copyBehavior": "PreserveHierarchy"
 						},
 						"formatSettings": {
 							"type": "ParquetWriteSettings"
@@ -448,7 +449,7 @@
 			},
 			"targetFolderPath": {
 				"type": "string",
-				"defaultValue": "retail/customers/incremental/"
+				"defaultValue": "retail/customers/incremental"
 			},
 			"targetFilename": {
 				"type": "string",
