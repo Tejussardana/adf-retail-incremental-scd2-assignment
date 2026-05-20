@@ -1,0 +1,737 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "df-retail-kart"
+		},
+		"KV_RETAIL_KART_properties_typeProperties_baseUrl": {
+			"type": "string",
+			"defaultValue": "https://kvretailkart.vault.azure.net/"
+		},
+		"LS_ADLSGen2_Retail_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stretailkart.dfs.core.windows.net"
+		},
+		"LS_SQL_RETAILKART_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "@{linkedService().serverSecret}"
+		},
+		"LS_SQL_RETAILKART_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "@{linkedService().databaseSecret}"
+		},
+		"LS_SQL_RETAILKART_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "@{linkedService().usernameSecret}"
+		},
+		"LS_ADLS_RetailKart_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://stretailkart.dfs.core.windows.net"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_SQL_to_ADLS')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetServerName",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "GET",
+							"headers": {},
+							"url": "https://kvretailkart.vault.azure.net/secrets/sql-server-name?api-version=7.4",
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "set_ServerName",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetServerName",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "v_serverName",
+							"value": {
+								"value": "@activity('GetServerName').output.value",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "GetDatabaseName",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "GET",
+							"headers": {},
+							"url": "https://kvretailkart.vault.azure.net/secrets/sql-database-name?api-version=7.4",
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "set_DatabaseName",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetDatabaseName",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "v_databaseName",
+							"value": {
+								"value": "@replace(activity('GetDatabaseName').output.value, '/', '')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "GetUsername",
+						"type": "WebActivity",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "GET",
+							"headers": {},
+							"url": "https://kvretailkart.vault.azure.net/secrets/sql-username?api-version=7.4",
+							"authentication": {
+								"type": "MSI",
+								"resource": "https://vault.azure.net"
+							}
+						}
+					},
+					{
+						"name": "set_Username",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "GetUsername",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "v_userName",
+							"value": {
+								"value": "@activity('GetUsername').output.value",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "CopyIncrementalData",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "LK_OldWatermark",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "LK_NewWatermark",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "@concat(\n'SELECT * FROM ',\npipeline().parameters.sourceSchemaName, '.', pipeline().parameters.sourceTableName,\n' WHERE ',\npipeline().parameters.watermarkColumn, ' > ''',\nactivity('LK_OldWatermark').output.firstRow.last_watermark_value,\n''' AND ',\npipeline().parameters.watermarkColumn, ' <= ''',\nactivity('LK_NewWatermark').output.firstRow.new_watermark_value,\n''''\n)",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings",
+									"copyBehavior": "PreserveHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_AzureSQL_Parameterized",
+								"type": "DatasetReference",
+								"parameters": {
+									"schemaName": {
+										"value": "@pipeline().parameters.sourceSchemaName",
+										"type": "Expression"
+									},
+									"tableName": {
+										"value": "@pipeline().parameters.sourceTableName",
+										"type": "Expression"
+									},
+									"serverSecret": {
+										"value": "@variables('v_serverName')",
+										"type": "Expression"
+									},
+									"databaseSecret": {
+										"value": "@variables('v_databaseName')",
+										"type": "Expression"
+									},
+									"usernameSecret": {
+										"value": "@variables('v_userName')",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_ADLS_Parquet_Parameterized",
+								"type": "DatasetReference",
+								"parameters": {
+									"containerName": {
+										"value": "@pipeline().parameters.targetContainer",
+										"type": "Expression"
+									},
+									"folderPath": {
+										"value": "@pipeline().parameters.targetFolderPath",
+										"type": "Expression"
+									},
+									"fileName": {
+										"value": "@pipeline().parameters.targetFilename",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "LK_OldWatermark",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "set_ServerName",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "set_DatabaseName",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "set_Username",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "@concat(\n'SELECT last_watermark_value FROM ',\npipeline().parameters.sourceSchemaName, '.', pipeline().parameters.watermarkTable\n)",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_AzureSQL_Parameterized",
+								"type": "DatasetReference",
+								"parameters": {
+									"schemaName": {
+										"value": "@pipeline().parameters.sourceSchemaName",
+										"type": "Expression"
+									},
+									"tableName": {
+										"value": "@pipeline().parameters.sourceTableName",
+										"type": "Expression"
+									},
+									"serverSecret": {
+										"value": "@variables('v_serverName')",
+										"type": "Expression"
+									},
+									"databaseSecret": {
+										"value": "@variables('v_databaseName')",
+										"type": "Expression"
+									},
+									"usernameSecret": {
+										"value": "@variables('v_userName')",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					},
+					{
+						"name": "LK_NewWatermark",
+						"type": "Lookup",
+						"dependsOn": [
+							{
+								"activity": "set_ServerName",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "set_DatabaseName",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "set_Username",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": {
+									"value": "@concat(\n'SELECT MAX(', pipeline().parameters.watermarkColumn, ') AS new_watermark_value FROM ',\npipeline().parameters.sourceSchemaName, '.', pipeline().parameters.sourceTableName\n)\n\n\n",
+									"type": "Expression"
+								},
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "DS_AzureSQL_Parameterized",
+								"type": "DatasetReference",
+								"parameters": {
+									"schemaName": {
+										"value": "@pipeline().parameters.sourceSchemaName",
+										"type": "Expression"
+									},
+									"tableName": {
+										"value": "@pipeline().parameters.sourceTableName",
+										"type": "Expression"
+									},
+									"serverSecret": {
+										"value": "@variables('v_serverName')",
+										"type": "Expression"
+									},
+									"databaseSecret": {
+										"value": "@variables('v_databaseName')",
+										"type": "Expression"
+									},
+									"usernameSecret": {
+										"value": "@variables('v_userName')",
+										"type": "Expression"
+									}
+								}
+							}
+						}
+					},
+					{
+						"name": "Script1",
+						"type": "Script",
+						"dependsOn": [
+							{
+								"activity": "CopyIncrementalData",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "LS_SQL_RETAILKART",
+							"type": "LinkedServiceReference",
+							"parameters": {
+								"serverSecret": {
+									"value": "@variables('v_serverName')",
+									"type": "Expression"
+								},
+								"databaseSecret": {
+									"value": "@variables('v_databaseName')",
+									"type": "Expression"
+								},
+								"usernameSecret": {
+									"value": "@variables('v_userName')",
+									"type": "Expression"
+								}
+							}
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": {
+										"value": "@concat(\n'UPDATE dbo.pipeline_watermark SET last_watermark_value = ''',\nactivity('LK_NewWatermark').output.firstRow.new_watermark_value,\n''' WHERE source_table_name = ''',\npipeline().parameters.sourceTableName,\n''''\n)",
+										"type": "Expression"
+									}
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"sourceSchemaName": {
+						"type": "string",
+						"defaultValue": "dbo"
+					},
+					"sourceTableName": {
+						"type": "string",
+						"defaultValue": "retail_customers_source"
+					},
+					"watermarkColumn": {
+						"type": "string",
+						"defaultValue": "updated_at"
+					},
+					"targetContainer": {
+						"type": "string",
+						"defaultValue": "raw"
+					},
+					"targetFolderPath": {
+						"type": "string",
+						"defaultValue": "retail/customers/incremental"
+					},
+					"targetFilename": {
+						"type": "string",
+						"defaultValue": "customers_incremental.parquet"
+					},
+					"watermarkTable": {
+						"type": "string",
+						"defaultValue": "pipeline_watermark"
+					}
+				},
+				"variables": {
+					"v_serverName": {
+						"type": "String"
+					},
+					"v_databaseName": {
+						"type": "String"
+					},
+					"v_userName": {
+						"type": "String"
+					},
+					"v_password": {
+						"type": "String"
+					}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_AzureSQL_Parameterized')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Parquet_Parameterized')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_RETAILKART')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_Parquet_Parameterized')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_RetailKart",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"containerName": {
+						"type": "string"
+					},
+					"folderPath": {
+						"type": "string"
+					},
+					"fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": {
+							"value": "@dataset().containerName",
+							"type": "Expression"
+						}
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_ADLS_RetailKart')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_AzureSQL_Parameterized')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_SQL_RETAILKART",
+					"type": "LinkedServiceReference",
+					"parameters": {
+						"serverSecret": {
+							"value": "@dataset().serverSecret",
+							"type": "Expression"
+						},
+						"databaseSecret": {
+							"value": "@dataset().databaseSecret",
+							"type": "Expression"
+						},
+						"usernameSecret": {
+							"value": "@dataset().usernameSecret",
+							"type": "Expression"
+						}
+					}
+				},
+				"parameters": {
+					"schemaName": {
+						"type": "string"
+					},
+					"tableName": {
+						"type": "string"
+					},
+					"serverSecret": {
+						"type": "string"
+					},
+					"databaseSecret": {
+						"type": "string"
+					},
+					"usernameSecret": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().schemaName",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().tableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_RETAILKART')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/KV_RETAIL_KART')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureKeyVault",
+				"typeProperties": {
+					"baseUrl": "[parameters('KV_RETAIL_KART_properties_typeProperties_baseUrl')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_ADLSGen2_Retail')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_ADLSGen2_Retail_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "KV_RETAIL_KART",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "adls-storage-key"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/KV_RETAIL_KART')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_SQL_RETAILKART')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"parameters": {
+					"serverSecret": {
+						"type": "string",
+						"defaultValue": "sql-server-name"
+					},
+					"databaseSecret": {
+						"type": "string",
+						"defaultValue": "sql-database-name"
+					},
+					"usernameSecret": {
+						"type": "string",
+						"defaultValue": "sql-username"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"server": "[parameters('LS_SQL_RETAILKART_properties_typeProperties_server')]",
+					"database": "[parameters('LS_SQL_RETAILKART_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": false,
+					"authenticationType": "SQL",
+					"userName": "[parameters('LS_SQL_RETAILKART_properties_typeProperties_userName')]",
+					"password": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "KV_RETAIL_KART",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "sql-password"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/KV_RETAIL_KART')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_ADLS_RetailKart')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_ADLS_RetailKart_properties_typeProperties_url')]",
+					"accountKey": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "KV_RETAIL_KART",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "adls-storage-key"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/KV_RETAIL_KART')]"
+			]
+		}
+	]
+}
