@@ -2,7 +2,7 @@
 	"name": "DS_ADLS_Parquet_Parameterized",
 	"properties": {
 		"linkedServiceName": {
-			"referenceName": "LS_ADLSGen2_Retail",
+			"referenceName": "LS_ADLS_RetailKart",
 			"type": "LinkedServiceReference"
 		},
 		"parameters": {
