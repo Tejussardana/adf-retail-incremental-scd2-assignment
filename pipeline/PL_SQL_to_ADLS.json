@@ -428,6 +428,30 @@
 					],
 					"scriptBlockExecutionTimeout": "02:00:00"
 				}
+			},
+			{
+				"name": "SCD_Databricks",
+				"type": "DatabricksNotebook",
+				"dependsOn": [
+					{
+						"activity": "To_Update_Watermark",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "DBS_RetailKart",
+					"type": "LinkedServiceReference"
+				}
 			}
 		],
 		"parameters": {
