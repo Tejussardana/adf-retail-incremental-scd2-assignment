@@ -23,6 +23,9 @@
 		"LS_ADLS_RetailKart_properties_typeProperties_url": {
 			"value": "https://stretailkart.dfs.core.windows.net"
 		},
+		"DBS_RetailKart_properties_typeProperties_existingClusterId": {
+			"value": "0520-142907-c922tcwy"
+		},
 		"containerUri": {
 			"value": ""
 		},

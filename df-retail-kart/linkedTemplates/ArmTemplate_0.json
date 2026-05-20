@@ -30,6 +30,10 @@
 		"LS_ADLS_RetailKart_properties_typeProperties_url": {
 			"type": "string",
 			"defaultValue": "https://stretailkart.dfs.core.windows.net"
+		},
+		"DBS_RetailKart_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0520-142907-c922tcwy"
 		}
 	},
 	"variables": {
@@ -131,6 +135,30 @@
 						},
 						"secretName": "adls-storage-key"
 					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/KV_RETAIL_KART')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DBS_RetailKart')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-7405618995321472.12.azuredatabricks.net",
+					"accessToken": {
+						"type": "AzureKeyVaultSecret",
+						"store": {
+							"referenceName": "KV_RETAIL_KART",
+							"type": "LinkedServiceReference"
+						},
+						"secretName": "databricks-access-token"
+					},
+					"existingClusterId": "[parameters('DBS_RetailKart_properties_typeProperties_existingClusterId')]"
 				}
 			},
 			"dependsOn": [
@@ -628,7 +656,7 @@
 						}
 					},
 					{
-						"name": "Script1",
+						"name": "To_Update_Watermark",
 						"type": "Script",
 						"dependsOn": [
 							{
@@ -675,6 +703,37 @@
 								}
 							],
 							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					},
+					{
+						"name": "SCD_Databricks",
+						"type": "DatabricksNotebook",
+						"dependsOn": [
+							{
+								"activity": "To_Update_Watermark",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Users/updazvmnag_1777788717439@npupgradassessment.onmicrosoft.com/NB_SCD_Type2_Customer_Dimension",
+							"baseParameters": {
+								"raw_input_path": "abfss://raw@stretailkart.dfs.core.windows.net/retail/customers/incremental/",
+								"curated_output_path": "abfss://curated@stretailkart.dfs.core.windows.net/retail/dim_customers/"
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "DBS_RetailKart",
+							"type": "LinkedServiceReference"
 						}
 					}
 				],
@@ -730,7 +789,8 @@
 			"dependsOn": [
 				"[concat(variables('factoryId'), '/datasets/DS_AzureSQL_Parameterized')]",
 				"[concat(variables('factoryId'), '/datasets/DS_ADLS_Parquet_Parameterized')]",
-				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_RETAILKART')]"
+				"[concat(variables('factoryId'), '/linkedServices/LS_SQL_RETAILKART')]",
+				"[concat(variables('factoryId'), '/linkedServices/DBS_RetailKart')]"
 			]
 		}
 	]

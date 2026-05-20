@@ -31,6 +31,10 @@
 			"type": "string",
 			"defaultValue": "https://stretailkart.dfs.core.windows.net"
 		},
+		"DBS_RetailKart_properties_typeProperties_existingClusterId": {
+			"type": "string",
+			"defaultValue": "0520-142907-c922tcwy"
+		},
 		"containerUri": {
 			"type": "string",
 			"metadata": "URI to storage account containing linked ARM templates"
@@ -75,6 +79,9 @@
 					},
 					"LS_ADLS_RetailKart_properties_typeProperties_url": {
 						"value": "[parameters('LS_ADLS_RetailKart_properties_typeProperties_url')]"
+					},
+					"DBS_RetailKart_properties_typeProperties_existingClusterId": {
+						"value": "[parameters('DBS_RetailKart_properties_typeProperties_existingClusterId')]"
 					}
 				}
 			},
