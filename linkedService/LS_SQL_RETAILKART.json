@@ -1,0 +1,37 @@
+{
+	"name": "LS_SQL_RETAILKART",
+	"properties": {
+		"parameters": {
+			"serverSecret": {
+				"type": "string",
+				"defaultValue": "sql-server-name"
+			},
+			"databaseSecret": {
+				"type": "string",
+				"defaultValue": "sql-database-name"
+			},
+			"usernameSecret": {
+				"type": "string",
+				"defaultValue": "sql-username"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"server": "@{linkedService().serverSecret}",
+			"database": "@{linkedService().databaseSecret}",
+			"encrypt": "mandatory",
+			"trustServerCertificate": false,
+			"authenticationType": "SQL",
+			"userName": "@{linkedService().usernameSecret}",
+			"password": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "KV_RETAIL_KART",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "sql-password"
+			}
+		}
+	}
+}
