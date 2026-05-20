@@ -1,11 +1,11 @@
 {
 	"name": "KV_RETAIL_KART",
-	"type": "Microsoft.DataFactory/factories/linkedservices",
 	"properties": {
 		"annotations": [],
 		"type": "AzureKeyVault",
 		"typeProperties": {
-			"baseUrl": "https://kv-retail-kart.vault.azure.net/"
+			"baseUrl": "https://kvretailkart.vault.azure.net/"
 		}
-	}
+	},
+	"type": "Microsoft.DataFactory/factories/linkedservices"
 }
