@@ -4,7 +4,7 @@
 		"parameters": {
 			"ServerNameParam": {
 				"type": "string",
-				"defaultValue": "@linkedService.sql-server-name"
+				"defaultValue": "@linkedService().sql-server-name"
 			}
 		},
 		"annotations": []
